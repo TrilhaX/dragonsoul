@@ -1,0 +1,328 @@
+warn('[TEMPEST HUB] Loading Bypass')
+wait(1)
+warn('[TEMPEST HUB] Loading Ui')
+wait(1)
+local repo = 'https://raw.githubusercontent.com/TrapstarKSSKSKSKKS/LinoriaLib/main/'
+
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+Library:Notify('Welcome to Tempest Hub', 5)
+
+local Window = Library:CreateWindow({
+    Title = 'Tempest Hub | Dragon Soul',
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2
+})
+
+Library:Notify('Loading Dragon Soul Script', 5)
+warn('[TEMPEST HUB] Loading Function')
+wait(1)
+warn('[TEMPEST HUB] Loading Toggles')
+wait(1)
+warn('[TEMPEST HUB] Last Checking')
+wait(1)
+
+local TweenService = game:GetService("TweenService")
+local speed = 1000
+
+function tweenModel(model, targetCFrame)
+    local duration = (model.PrimaryPart.Position - targetCFrame.Position).Magnitude / speed
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+    
+    local cframeValue = Instance.new("CFrameValue")
+    cframeValue.Value = model:GetPrimaryPartCFrame()
+    
+    cframeValue:GetPropertyChangedSignal("Value"):Connect(function()
+        model:SetPrimaryPartCFrame(cframeValue.Value)
+    end)
+    
+    local tween = TweenService:Create(cframeValue, info, {
+        Value = targetCFrame,
+    })
+    
+    tween:Play()
+    tween.Completed:Connect(function()
+        cframeValue:Destroy()
+    end)
+end
+
+function GetCFrame(obj, height, angle)
+    local cframe = CFrame.new()
+
+    if typeof(obj) == "Vector3" then
+        cframe = CFrame.new(obj)
+    elseif typeof(obj) == "table" then
+        cframe = CFrame.new(unpack(obj))
+    elseif typeof(obj) == "string" then
+        local parts = {}
+        for val in obj:gmatch("[^,]+") do
+            table.insert(parts, tonumber(val))
+        end
+        if #parts >= 3 then
+            cframe = CFrame.new(unpack(parts))
+        end
+    elseif typeof(obj) == "Instance" then
+        if obj:IsA("Model") then
+            local rootPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
+            if rootPart then
+                cframe = rootPart.CFrame
+            end
+        elseif obj:IsA("Part") then
+            cframe = obj.CFrame
+        end
+    end
+
+    -- Apply height and angle adjustments
+    if height then
+        cframe = cframe + Vector3.new(0, height, 0)
+    end
+    if angle then
+        cframe = cframe * CFrame.Angles(0, math.rad(angle), 0)
+    end
+    
+    return cframe
+end
+
+local selectedEnemie = "None" -- Variável para armazenar o inimigo selecionado
+local selectedAtaque = "None" -- Variável para armazenar o ataque selecionado
+
+-- Função para executar o ataque automático
+function autoataque()
+    if selectedEnemie ~= "None" and selectedAtaque ~= "None" then
+        local character = workspace.Main.Live:FindFirstChild(selectedEnemie)
+        if character then
+            local position = character.HumanoidRootPart.Position
+            local cframe = character.HumanoidRootPart.CFrame
+            
+            local targetCFrame = GetCFrame(selectedEnemie)
+            tweenModel(game.Players.LocalPlayer.Character, targetCFrame)
+            local args = {
+                {
+                    true,
+                    " ",
+                    {
+                        "\1",
+                        {
+                            ID = selectedAtaque,
+                            Action = "Charge",
+                            Params = {}
+                        }
+                    },
+                    "d"
+                }
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+            
+            -- Disparar a habilidade na posição do personagem
+            args = {
+                {
+                    {
+                        "\1",
+                        {
+                            ID = selectedAtaque,
+                            Action = "Fire",
+                            Params = {
+                                position,
+                                cframe
+                            }
+                        }
+                    },
+                    "d"
+                }
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+            
+            -- Parar de carregar a habilidade
+            args = {
+                {
+                    false,
+                    " "
+                }
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        end
+    else
+        wait()
+    end
+end
+
+function autochargeaura()
+    while getgenv().autochargeaura == true do 
+        local kiquantidade = game:GetService("Players").LocalPlayer.PlayerGui:GetChildren()[28].Frame.Bar.StatBars.ki.Bar.Background.Stat.Text
+
+        if kiquantidade == "Hold C to charge Ki" then 
+            local args = {
+                [1] = true
+            }
+        
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
+            wait()
+            print(kiquantidade)
+        else
+            local args = {
+                [1] = false
+            }
+        
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
+            wait()
+        end        
+    end
+end
+
+local Tabs = {
+    Main = Window:AddTab('Main'),
+}
+
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Player')
+
+LeftGroupBox:AddToggle('Auto Charge', {
+    Text = 'Auto Charge',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autochargeaura = Value
+        autochargeaura()
+    end
+})
+
+-- Código para preencher a lista de inimigos
+local mob = workspace.NPCSpawners
+local children = mob:GetChildren()
+local ValuesEnemie = {} -- Adiciona declaração para ValuesEnemie
+local printedNames = {}
+
+for i, child in ipairs(children) do
+    if not printedNames[child.Name] then
+        table.insert(ValuesEnemie, child.Name)
+        printedNames[child.Name] = true
+    end
+end
+
+-- Código para preencher a lista de ataques
+local ataque = game:GetService("Players").LocalPlayer.Backpack
+local children = ataque:GetChildren()
+local ValuesAtaque = {} -- Adiciona declaração para ValuesAtaque
+
+for i, child in ipairs(children) do
+    table.insert(ValuesAtaque, child.Name)
+end
+
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Farm')
+
+-- Dropdown para selecionar inimigo
+LeftGroupBox:AddDropdown('Enemie', {
+    Values = ValuesEnemie,
+    Default = "None",
+    Multi = false,
+    Text = 'Choose Mob',
+    Callback = function(value)
+        selectedEnemie = value
+    end
+})
+
+-- Dropdown para selecionar ataque
+LeftGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = 'Choose Skill',
+    Tooltip = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+-- Toggle para ativar/desativar o ataque automático
+LeftGroupBox:AddToggle('Auto Roll Technique', {
+    Text = 'Auto Kill Mob',
+    Default = false,
+    Tooltip = '',
+    Callback = function(enabled)
+        if enabled then
+            autoataque()
+        end
+    end
+})
+
+
+-- Define FPS-related variables
+local FrameTimer = tick()
+local FrameCounter = 0
+local FPS = 60
+
+local WatermarkConnection
+
+-- Create a function to update FPS and ping information
+local function UpdateWatermark()
+    FrameCounter = FrameCounter + 1
+
+    if (tick() - FrameTimer) >= 1 then
+        FPS = FrameCounter
+        FrameTimer = tick()
+        FrameCounter = 0
+    end
+
+    Library:SetWatermark(('Tempest Hub | %s fps | %s ms'):format(
+        math.floor(FPS),
+        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+    ))
+end
+
+-- Connect the function to the RenderStepped event
+WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(UpdateWatermark)
+
+-- Create tabs for UI settings
+local TabsUI = {
+    ['UI Settings'] = Window:AddTab('UI Settings'),
+}
+
+-- Unload function
+local function Unload()
+    WatermarkConnection:Disconnect()
+    print('Unloaded!')
+    Library.Unloaded = true
+end
+
+-- UI Settings
+local MenuGroup = TabsUI['UI Settings']:AddLeftGroupbox('Menu')
+
+-- Add an unload button
+MenuGroup:AddButton('Unload', Unload)
+
+-- Add a label and key picker for the menu keybind
+MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
+
+-- Define the ToggleKeybind variable
+Library.ToggleKeybind = Options.MenuKeybind
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+ThemeManager:SetFolder('Tempest Hub')
+SaveManager:SetFolder('Tempest Hub/Grand Piece Online')
+
+SaveManager:BuildConfigSection(TabsUI['UI Settings'])
+
+ThemeManager:ApplyToTab(TabsUI['UI Settings'])
+
+SaveManager:LoadAutoloadConfig()
+
+local GameConfigName = '_toilet_tower_defense'
+local player = game.Players.LocalPlayer
+SaveManager:Load(player.Name .. GameConfigName)
+spawn(function()
+    while task.wait(1) do
+        if Library.Unloaded then
+            break
+        end
+        SaveManager:Save(player.Name .. GameConfigName)
+    end
+end)
+
+-- Disable player idling
+for i,v in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
+    v:Disable()
+end
+warn('[TEMPEST HUB] Loaded')
