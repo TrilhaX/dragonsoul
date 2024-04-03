@@ -86,91 +86,199 @@ function GetCFrame(obj, height, angle)
     return cframe
 end
 
-local selectedEnemie = "None" -- Variável para armazenar o inimigo selecionado
-local selectedAtaque = "None" -- Variável para armazenar o ataque selecionado
+local selectedEnemie = "None"
+local selectedAtaque = "None"
+local autoAttackEnabled = false
 
--- Função para executar o ataque automático
-function autoataque()
-    if selectedEnemie ~= "None" and selectedAtaque ~= "None" then
-        local character = workspace.Main.Live:FindFirstChild(selectedEnemie)
-        if character then
-            local position = character.HumanoidRootPart.Position
-            local cframe = character.HumanoidRootPart.CFrame
-            
-            local targetCFrame = GetCFrame(selectedEnemie)
-            tweenModel(game.Players.LocalPlayer.Character, targetCFrame)
-            local args = {
-                {
-                    true,
-                    " ",
-                    {
-                        "\1",
+local function autoAtaque()
+    while true do
+        if autoAttackEnabled then
+            if selectedEnemie ~= "None" and selectedAtaque ~= "None" then
+                local character = workspace.Main.Live:FindFirstChild(selectedEnemie)
+                if character then
+                    local position = character.HumanoidRootPart.Position
+                    local cframe = character.HumanoidRootPart.CFrame
+                    
+                    local targetCFrame = GetCFrame(character, selectedDistance, 0)
+                    tweenModel(game.Players.LocalPlayer.Character, targetCFrame)
+                    local args = {
                         {
-                            ID = selectedAtaque,
-                            Action = "Charge",
-                            Params = {}
+                            true,
+                            " ",
+                            {
+                                "\1",
+                                {
+                                    ID = selectedAtaque,
+                                    Action = "Charge",
+                                    Params = {}
+                                }
+                            },
+                            "d"
                         }
-                    },
-                    "d"
-                }
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-            
-            -- Disparar a habilidade na posição do personagem
-            args = {
-                {
-                    {
-                        "\1",
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                    
+                    -- Disparar a habilidade na posição do personagem
+                    args = {
                         {
-                            ID = selectedAtaque,
-                            Action = "Fire",
-                            Params = {
-                                position,
-                                cframe
-                            }
+                            {
+                                "\1",
+                                {
+                                    ID = selectedAtaque,
+                                    Action = "Fire",
+                                    Params = {
+                                        position,
+                                        cframe
+                                    }
+                                }
+                            },
+                            "d"
                         }
-                    },
-                    "d"
-                }
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-            
-            -- Parar de carregar a habilidade
-            args = {
-                {
-                    false,
-                    " "
-                }
-            }
-            game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                    
+                    -- Parar de carregar a habilidade
+                    args = {
+                        {
+                            false,
+                            " "
+                        }
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                end
+            end
+            wait() -- Adiciona um pequeno atraso para não sobrecarregar o cliente
+        else
+            wait() -- Adiciona um pequeno atraso quando o ataque automático estiver desativado
         end
-    else
-        wait()
     end
 end
+
 
 function autochargeaura()
     while getgenv().autochargeaura == true do 
-        local kiquantidade = game:GetService("Players").LocalPlayer.PlayerGui:GetChildren()[28].Frame.Bar.StatBars.ki.Bar.Background.Stat.Text
+        local kitohotbar = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+        if kitohotbar then
+            local children = kitohotbar:GetChildren()
+        
+            for _, child in ipairs(children) do
+                if child.Name == "Hotbar" then
+                    local hotbarChildren = child:GetChildren()
+                    for _, hotbarChild in ipairs(hotbarChildren) do
+                        local frametostatbar = hotbarChild.Bar
+                        if frametostatbar then
+                            local frameChildren = frametostatbar:GetChildren()
+                            for _, frameChild in ipairs(frameChildren) do
+                                local blacklist = {
+                                    ["Buttons"] = true,
+                                }
+                                if not blacklist[frameChild.Name] then
+                                    if frameChild.ki.Bar.Background.Stat.Text == "Hold C to charge Ki" then 
+                                        local args = {
+                                            [1] = true
+                                        }
+                                    
+                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
+                                    else
+                                        local args = {
+                                            [1] = false
+                                        }
+                                    
+                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        wait() -- Adiciona um pequeno atraso para não sobrecarregar o cliente
+    end 
+end
 
-        if kiquantidade == "Hold C to charge Ki" then 
-            local args = {
-                [1] = true
+
+function autostatsS()
+    while getgenv().autostatsS == true do
+    local args = {
+        [1] = {
+            [1] = {
+                ["Stat"] = "Strength",
+                ["Amount"] = 1
+            },
+            [2] = "W"
+        }
+    }
+    
+    game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    wait()
+    end    
+end
+
+function autostatsPK()
+    while getgenv().autostatsPK == true do
+        local args = {
+            [1] = {
+                [1] = {
+                    ["Stat"] = "KiPower",
+                    ["Amount"] = 1
+                },
+                [2] = "W"
             }
+        }
         
-            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
-            wait()
-            print(kiquantidade)
-        else
-            local args = {
-                [1] = false
+        game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))   
+        wait()     
+    end    
+end
+
+function autostatsH()
+    while getgenv().autostatsH == true do
+        local args = {
+            [1] = {
+                [1] = {
+                    ["Stat"] = "MaxHealth",
+                    ["Amount"] = 1
+                },
+                [2] = "W"
             }
+        }
         
-            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("ChargeEvent"):FireServer(unpack(args))
+        game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))   
+        wait()     
+    end    
+end
+
+function autostatsMK()
+    while getgenv().autostatsMK == true do
+        local args = {
+            [1] = {
+                [1] = {
+                    ["Stat"] = "KiMax",
+                    ["Amount"] = 1
+                },
+                [2] = "W"
+            }
+        }
+        
+        game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))      
+        wait()  
+    end    
+end
+
+function autogetdragonball()
+    while getgenv().autogetdragonball == true do
+        local dragonball = workspace.DragonBallSpawner
+        local children = dragonball:GetChildren()
+
+        for _, child in ipairs(children) do
+            local targetCFrame = GetCFrame(child.CFrame)
+            tweenModel(game.Players.LocalPlayer.Character, targetCFrame)
             wait()
-        end        
+        end
     end
 end
+
 
 local Tabs = {
     Main = Window:AddTab('Main'),
@@ -188,7 +296,7 @@ LeftGroupBox:AddToggle('Auto Charge', {
 })
 
 -- Código para preencher a lista de inimigos
-local mob = workspace.NPCSpawners
+local mob = workspace.Main.Live
 local children = mob:GetChildren()
 local ValuesEnemie = {} -- Adiciona declaração para ValuesEnemie
 local printedNames = {}
@@ -228,24 +336,99 @@ LeftGroupBox:AddDropdown('Skill', {
     Default = "None",
     Multi = false,
     Text = 'Choose Skill',
-    Tooltip = '',
     Callback = function(value)
         selectedAtaque = value
     end
 })
 
+-- Iniciar a coroutine para o ataque automático
+coroutine.wrap(autoAtaque)()
+
 -- Toggle para ativar/desativar o ataque automático
-LeftGroupBox:AddToggle('Auto Roll Technique', {
+LeftGroupBox:AddToggle('AutoKillMob', {
     Text = 'Auto Kill Mob',
     Default = false,
-    Tooltip = '',
     Callback = function(enabled)
-        if enabled then
-            autoataque()
-        end
+        autoAttackEnabled = enabled
     end
 })
 
+
+LeftGroupBox:AddSlider('Distance', {
+    Text = 'Distance of mob',
+    Default = 0,
+    Min = -100,
+    Max = 30,
+    Rounding = 1,
+    Compact = false,
+
+    Callback = function(Value)
+        selectedDistance = Value
+    end
+})
+
+local MyButton2 = LeftGroupBox:AddButton({
+    Text = 'Refresh Enemie Dropdown',
+    Func = function(ValuesEnemie)
+        Enemie:Refresh(ValuesEnemie)
+    end,
+        DoubleClick = false,
+})
+
+local MyButton2 = LeftGroupBox:AddButton({
+    Text = 'Refresh Attack Dropdown',
+    Func = function(ValuesAtaque)
+        Skill:Refresh(ValuesAtaque)
+    end,
+        DoubleClick = false,
+})
+
+LeftGroupBox:AddToggle('DragonBall', {
+    Text = 'Auto Get Dragon Ball',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autogetdragonball = Value
+        autogetdragonball()
+    end
+})
+
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Player')
+
+RightGroupBox:AddToggle('Auto Strength Stats', {
+    Text = 'Auto Strength Stats',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autostatsS = Value
+        autostatsS()
+    end
+})
+
+RightGroupBox:AddToggle('Auto Ki Power Stats', {
+    Text = 'Auto Ki Power Stats',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autostatsPK = Value
+        autostatsPK()
+    end
+})
+
+RightGroupBox:AddToggle('Auto Max Health Stats', {
+    Text = 'Auto Max Health Stats',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autostatsH = Value
+        autostatsH()
+    end
+})
+
+RightGroupBox:AddToggle('Auto Max Ki Stats', {
+    Text = 'Auto Max Ki Stats',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autostatsMK = Value
+        autostatsMK()
+    end
+})
 
 -- Define FPS-related variables
 local FrameTimer = tick()
@@ -301,7 +484,7 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
 ThemeManager:SetFolder('Tempest Hub')
-SaveManager:SetFolder('Tempest Hub/Grand Piece Online')
+SaveManager:SetFolder('Tempest Hub/Dragon_Soul')
 
 SaveManager:BuildConfigSection(TabsUI['UI Settings'])
 
@@ -309,7 +492,7 @@ ThemeManager:ApplyToTab(TabsUI['UI Settings'])
 
 SaveManager:LoadAutoloadConfig()
 
-local GameConfigName = '_toilet_tower_defense'
+local GameConfigName = '_Dragon_Soul'
 local player = game.Players.LocalPlayer
 SaveManager:Load(player.Name .. GameConfigName)
 spawn(function()
