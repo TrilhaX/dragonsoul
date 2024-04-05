@@ -93,7 +93,7 @@ local autoAttackEnabled = false
 local function autoAtaque()
     while true do
         if autoAttackEnabled then
-            if selectedEnemie ~= "None" and selectedAtaque ~= "None" then
+            if selectedEnemie ~= "None" then
                 local character = workspace.Main.Live:FindFirstChild(selectedEnemie)
                 if character then
                     local position = character.HumanoidRootPart.Position
@@ -279,6 +279,131 @@ function autogetdragonball()
     end
 end
 
+-- function to find the nearest NPC
+function findNearestNPC(player) 
+
+    local npcs = workspace.Main.Live
+
+local distance = selectedDistance
+
+local nearestnpc = nil -- npc model
+
+-- get the VirtualUser service
+local vu = game:GetService("VirtualUser")
+    -- initialize the shortest distance
+    local shortestDistance = math.huge 
+
+    -- initialize the nearest NPC
+    local nearestNPC = nil
+
+    -- loop through all NPCs
+    for _, npc in ipairs(npcs:GetChildren()) do
+        -- check if the NPC is not a player character
+        if not game.Players:GetPlayerFromCharacter(npc) then
+            -- calculate the distance to the NPC
+            local distance = (npc:WaitForChild("HumanoidRootPart").Position - player.Character.PrimaryPart.Position).magnitude
+
+            -- if this distance is shorter than the current shortest distance, update the shortest distance and nearest NPC
+            if distance < shortestDistance then
+                shortestDistance = distance
+                nearestNPC = npc
+                -- you can use 'print(nearestNPC)' to see the selected npc
+            end
+        end
+    end
+
+    -- return the nearest NPC and its distance to the player
+    return nearestNPC, shortestDistance
+end
+
+-- main loop for farming NPCs
+function killaura()
+    while getgenv().killaura == true do -- adicionado 'do' para fechar o loop
+        local npcs = workspace.Main.Live
+
+local distance = selectedDistance
+
+local nearestnpc = nil -- npc model
+
+-- get the VirtualUser service
+local vu = game:GetService("VirtualUser")
+        -- find the nearest NPC and its distance to the player
+        local nearestNPC, distance = findNearestNPC(game.Players.LocalPlayer)
+        
+        -- if there is a nearest NPC within range and it's not a player character, attack it
+        if nearestNPC and distance <= 10 and not game.Players:GetPlayerFromCharacter(nearestNPC) then
+
+            -- simulate a mouse click
+            vu:Button1Down(Vector2.new(1000, 1000), workspace.CurrentCamera.CFrame)
+            
+            -- set up attack 
+            local main = {
+                ["Victim"] = nearestNPC,
+                ["Type"] = "Light",
+                ["VictimPosition"] = nearestNPC:WaitForChild("HumanoidRootPart").Position,
+                ["CurrentHeavy"] = 1,
+                ["CurrentLight"] = 1,
+                ["CurrentLightCombo"] = 1,
+                ["LocalInfo"] = {
+                    ["Flying"] = false
+                },
+                ["AnimSet"] = "Generic"
+            }
+
+            -- send an attack request
+            game:GetService("ReplicatedStorage").Events.TryAttack:FireServer(main)
+        end
+        
+        -- wait before repeating the loop
+        wait()
+    end
+end -- adicionado 'end' para fechar a função
+
+function autogetquest()
+    while getgenv().autogetquest == true do
+        local quest = game:GetService("Players").LocalPlayer.PlayerGui.Quests.Frame:FindFirstChild(selectedQuest)
+        
+        if quest then
+            local children = quest:GetChildren()
+            local blacklist = {
+                ["AspectRatio"] = true,
+                ["Padding"] = true,
+                ["Title"] = true,
+                ["BottomPadding"] = true,
+                ["UIScale"] = true,
+                ["OverallProgress"] = true,
+                ["UIListLayout"] = true,
+            }
+            for i, parte2child in ipairs(children) do
+                if not blacklist[parte2child.Name] then
+                    local questUI = parte2child
+                    local children = questUI:GetChildren()
+                    local blacklist = {
+                        ["AspectRatio"] = true,
+                        ["Padding"] = true,
+                        ["Title"] = true,
+                        ["BottomPadding"] = true,
+                        ["UIScale"] = true,
+                        ["OverallProgress"] = true,
+                        ["UIListLayout"] = true,
+                    }
+                        for i, questUIchild in ipairs(children) do
+                            if not blacklist[questUIchild.Name] then
+                                wait()
+                        end
+                    end
+                end
+            end
+        else
+            local args = {
+                    [1] = 1
+                }
+                
+                game:GetService("Players").LocalPlayer.QuestRemoteEvents:WaitForChild(selectedQuest):FireServer(unpack(args))
+            wait()
+        end        
+    end
+end
 
 local Tabs = {
     Main = Window:AddTab('Main'),
@@ -295,26 +420,25 @@ LeftGroupBox:AddToggle('Auto Charge', {
     end
 })
 
--- Código para preencher a lista de inimigos
-local mob = workspace.Main.Live
-local children = mob:GetChildren()
+LeftGroupBox:AddToggle('Killaura', {
+    Text = 'Kill Aura',
+    Default = false,
+    Callback = function(Value)
+        getgenv().killaura = Value
+        killaura()
+    end
+})
+
+local Players = game:GetService("Players")
+local mobs = workspace.Main.Live:GetChildren()
 local ValuesEnemie = {} -- Adiciona declaração para ValuesEnemie
 local printedNames = {}
 
-for i, child in ipairs(children) do
-    if not printedNames[child.Name] then
-        table.insert(ValuesEnemie, child.Name)
-        printedNames[child.Name] = true
+for _, mob in ipairs(mobs) do
+    if not Players:FindFirstChild(mob.Name) and not printedNames[mob.Name] then
+        table.insert(ValuesEnemie, mob.Name) -- Alterei de 'mob' para 'mob.Name'
+        printedNames[mob.Name] = true
     end
-end
-
--- Código para preencher a lista de ataques
-local ataque = game:GetService("Players").LocalPlayer.Backpack
-local children = ataque:GetChildren()
-local ValuesAtaque = {} -- Adiciona declaração para ValuesAtaque
-
-for i, child in ipairs(children) do
-    table.insert(ValuesAtaque, child.Name)
 end
 
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Farm')
@@ -327,17 +451,6 @@ LeftGroupBox:AddDropdown('Enemie', {
     Text = 'Choose Mob',
     Callback = function(value)
         selectedEnemie = value
-    end
-})
-
--- Dropdown para selecionar ataque
-LeftGroupBox:AddDropdown('Skill', {
-    Values = ValuesAtaque,
-    Default = "None",
-    Multi = false,
-    Text = 'Choose Skill',
-    Callback = function(value)
-        selectedAtaque = value
     end
 })
 
@@ -367,7 +480,7 @@ LeftGroupBox:AddSlider('Distance', {
     end
 })
 
-local MyButton2 = LeftGroupBox:AddButton({
+LeftGroupBox:AddButton({
     Text = 'Refresh Enemie Dropdown',
     Func = function(ValuesEnemie)
         Enemie:Refresh(ValuesEnemie)
@@ -375,13 +488,41 @@ local MyButton2 = LeftGroupBox:AddButton({
         DoubleClick = false,
 })
 
-local MyButton2 = LeftGroupBox:AddButton({
-    Text = 'Refresh Attack Dropdown',
-    Func = function(ValuesAtaque)
-        Skill:Refresh(ValuesAtaque)
-    end,
-        DoubleClick = false,
+local quest = game:GetService("Players").LocalPlayer.QuestRemoteEvents
+local children = quest:GetChildren()
+local ValuesQuets = {}
+
+-- Adicionando as quests à tabela ValuesQuets
+for _, child in ipairs(children) do
+    table.insert(ValuesQuets, child.Name)
+end
+
+-- Adicionando a dropdown para selecionar a quest
+LeftGroupBox:AddDropdown('Quest', {
+    Values = ValuesQuets,
+    Default = "None",
+    Multi = false,
+    Text = 'Choose Quest',
+    Callback = function(value)
+        selectedQuest = value
+    end
 })
+
+-- Variável para controlar o estado do ataque automático
+local autoquestEnabled = false
+
+-- Adicionando o toggle para ativar/desativar o ataque automático
+LeftGroupBox:AddToggle('AutoQuest', {
+    Text = 'Auto Get Quest',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autogetquest = Value
+        autogetquest()
+    end
+})
+
+LeftGroupBox:AddLabel('Select Quest And The Mob\n\To Farm 100% AFK', true)
+
 
 LeftGroupBox:AddToggle('DragonBall', {
     Text = 'Auto Get Dragon Ball',
@@ -392,7 +533,8 @@ LeftGroupBox:AddToggle('DragonBall', {
     end
 })
 
-local RightGroupBox = Tabs.Main:AddRightGroupbox('Player')
+
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Stats')
 
 RightGroupBox:AddToggle('Auto Strength Stats', {
     Text = 'Auto Strength Stats',
@@ -429,6 +571,128 @@ RightGroupBox:AddToggle('Auto Max Ki Stats', {
         autostatsMK()
     end
 })
+
+local RightGroupBox = Tabs.Main:AddRightGroupbox('Skills')
+
+
+-- Código para preencher a lista de ataques
+local ataque = game:GetService("Players").LocalPlayer.Backpack
+local children = ataque:GetChildren()
+local ValuesAtaque = {} -- Adiciona declaração para ValuesAtaque
+
+for i, child in ipairs(children) do
+    table.insert(ValuesAtaque, child.Name)
+end
+
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = 'Choose Skill',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddDropdown('Skill', {
+    Values = ValuesAtaque,
+    Default = "None",
+    Multi = false,
+    Text = '',
+    Callback = function(value)
+        selectedAtaque = value
+    end
+})
+
+RightGroupBox:AddButton({
+    Text = 'Refresh Skills Dropdown',
+    Func = function()
+        RightGroupBox:FindChild('Skill'):Refresh(ValuesAtaque)
+    end,
+    DoubleClick = false,
+})
+
 
 -- Define FPS-related variables
 local FrameTimer = tick()
