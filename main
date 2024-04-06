@@ -331,7 +331,7 @@ local vu = game:GetService("VirtualUser")
         local nearestNPC, distance = findNearestNPC(game.Players.LocalPlayer)
         
         -- if there is a nearest NPC within range and it's not a player character, attack it
-        if nearestNPC and distance <= 10 and not game.Players:GetPlayerFromCharacter(nearestNPC) then
+        if nearestNPC and distance <= selectedKillauraRange and not game.Players:GetPlayerFromCharacter(nearestNPC) then
 
             -- simulate a mouse click
             vu:Button1Down(Vector2.new(1000, 1000), workspace.CurrentCamera.CFrame)
@@ -405,6 +405,59 @@ function autogetquest()
     end
 end
 
+function autogetdrop()
+    while getgenv().autogetdrop == true do
+        local activedrops = game.workspace.ActiveDrops
+        local children = activedrops:GetChildren()
+        
+        for _, child in ipairs(children) do
+            local args = {
+            [1] = {
+            [1] = activedrops,
+            [2] = "!"
+            }
+        }
+        
+        game:GetService("ReplicatedStorage"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        wait(waittimeDrop)
+        end
+    end
+end
+
+function walkspeed()
+    while getgenv().walkspeed == true do
+        local player = game.Players.LocalPlayer
+        local Live = game.workspace.Main.Live
+        local children = Live:GetChildren()
+
+        for _, Livechild in ipairs(children) do
+            if Livechild == player.Character then
+                local playerHumanoid = Livechild.Humanoid
+                playerHumanoid.WalkSpeed = WalkSpeedValue
+                print(playerHumanoid.WalkSpeed)
+            end
+        end
+        wait() -- Adicionando uma pausa para não consumir recursos desnecessários
+    end
+end
+
+function jumppower()
+    while getgenv().jumppower == true do
+        local player = game.Players.LocalPlayer
+        local Live = game.workspace.Main.Live
+        local children = Live:GetChildren()
+
+        for _, Livechild in ipairs(children) do
+            if Livechild == player.Character then
+                local playerHumanoid = Livechild.Humanoid
+                playerHumanoid.jumppower = jumppowerValue
+                print(playerHumanoid.jumppower)
+            end
+        end
+        wait() -- Adicionando uma pausa para não consumir recursos desnecessários
+    end
+end
+
 local Tabs = {
     Main = Window:AddTab('Main'),
 }
@@ -426,6 +479,67 @@ LeftGroupBox:AddToggle('Killaura', {
     Callback = function(Value)
         getgenv().killaura = Value
         killaura()
+    end
+})
+
+LeftGroupBox:AddToggle('AutoGetDrop', {
+    Text = 'Auto Get Drop',
+    Default = false,
+    Callback = function(Value)
+        getgenv().autogetdrop = Value
+        autogetdrop()
+    end
+})
+
+LeftGroupBox:AddSlider('DistanceKillaura', {
+    Text = 'Distance of Kill Aura',
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 1,
+    Compact = false,
+
+    Callback = function(Value)
+        selectedKillauraRange = Value
+    end
+})
+
+LeftGroupBox:AddSlider('DistanceKillaura', {
+    Text = 'Distance of Kill Aura',
+    Default = 0,
+    Min = 1,
+    Max = 30,
+    Rounding = 1,
+    Compact = false,
+
+    Callback = function(Value)
+        waittimeDrop = Value
+    end
+})
+
+LeftGroupBox:AddSlider('Walkspeed', {
+    Text = 'Walkspeed',
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 1,
+    Compact = false,
+
+    Callback = function(Value)
+        WalkSpeedValue = Value
+    end
+})
+
+LeftGroupBox:AddSlider('JumpPower', {
+    Text = 'Jump Power',
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 1,
+    Compact = false,
+
+    Callback = function(Value)
+        jumppowerValue = Value
     end
 })
 
